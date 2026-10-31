@@ -133,13 +133,20 @@ function vJ(){
  return `<h1>Jadwal hari ini</h1><div class="c"><div class="mu">${fd(d)}</div><div class="big">${dn.length}/${L.length} selesai</div><div class="bar"><i style="width:${p}%"></i></div>${nx?`<div>Berikutnya: <b>${nx.t}</b> ${nx.e||"⭐"} ${esc(nx.n)}</div>`:"<div class=\"mu\">Tidak ada kegiatan yang menunggu.</div>"}</div>
  <div class="c">${L.map(x=>{const dd=dn.includes(x.i);return `<div class="it" style="${nx&&nx.i==x.i?"background:#eff6ff;border-radius:10px;padding:8px":""}"><label class="r" style="flex-wrap:nowrap;gap:10px"><input type="checkbox" style="width:22px;flex:none" ${dd?"checked":""} onchange="tg(${x.i})"><span class="${dd?"done":""}">${x.e||"⭐"} <b>${x.t}</b> ${esc(x.n)}${!dd&&mn(x.t)<hm?' <span class="bad mu">terlewat</span>':""}</span></label>${x.r>=0?"<span title=\"pengingat\">🔔</span>":""}</div>`}).join("")||'<div class="mu">Tidak ada jadwal hari ini.</div>'}</div>
  <div class="c"><h2>Konsistensi 7 hari</h2><div class="r" style="flex-wrap:nowrap;align-items:flex-end;height:70px">${wk.map(w=>`<div style="text-align:center"><div style="height:${w[1]*0.45}px;min-height:3px;background:var(--ac);border-radius:4px"></div><div class="mu">${w[0]}</div></div>`).join("")}</div></div>
- <div class="c"><h2>Tambah kegiatan</h2><div class="r"><input id="st" type="time" style="flex:0 0 120px"><input id="sn" placeholder="Mau ngapain?"></div>
+ <div class="c"><h2>Atur jadwal per hari</h2>
+ <div class="r" style="flex-wrap:nowrap;gap:4px">${H.map((h,i)=>`<button onclick="setJd(${i})" style="padding:10px 0;${i==jd?"":"background:var(--bg);color:var(--tx);border:1px solid var(--bd)"}">${h}</button>`).join("")}</div>
+ <h2 style="margin-top:12px">${HF[jd]} <span class="mu">(berulang tiap minggu)</span></h2>
+ ${S.sched.map((x,i)=>({...x,i})).filter(x=>!x.dt&&x.days.includes(jd)).sort((a,b)=>a.t.localeCompare(b.t)).map(x=>`<div class="it"><div>${x.e||"⭐"} <b>${x.t}</b> ${esc(x.n)}${x.r>=0?" 🔔":""}</div><button class="g" onclick="delS(${x.i})">✕</button></div>`).join("")||'<div class="mu">Belum ada kegiatan di hari ini.</div>'}
+ <div class="r" style="margin-top:10px"><input id="st" type="time" style="flex:0 0 120px"><input id="sn" placeholder="Kegiatan (mis. Sholat, Belajar)"></div>
  <div class="r" style="margin-top:8px"><select id="se">${EM.map((e,i)=>`<option value="${e}">${e} ${EN[i]}</option>`).join("")}</select><select id="sr"><option value="-1">Tanpa pengingat</option><option value="0">Ingatkan tepat waktu</option><option value="10">10 menit sebelumnya</option><option value="30">30 menit sebelumnya</option></select></div>
- <div class="mu" style="margin-top:8px">Berulang di hari terpilih, atau isi tanggal khusus (sekali saja):</div><input id="sd" type="date"><div>${H.map((h,i)=>`<label class="chip"><input type="checkbox" class="dy" value="${i}" checked>${h}</label>`).join("")}</div>
- <button style="margin-top:8px" onclick="addS()">Tambah</button></div>
- <div class="c"><h2>Semua rutinitas</h2>${S.sched.map((x,i)=>`<div class="it"><div>${x.e||"⭐"} <b>${x.t}</b> ${esc(x.n)}<div class="mu">${x.dt?fd(x.dt):x.days.length==7?"Setiap hari":x.days.map(k=>H[k]).join(", ")}</div></div><button class="g" onclick="S.sched.splice(${i},1);S.done={};save();draw()">✕</button></div>`).join("")||'<div class="mu">Kosong.</div>'}</div>`;
+ <div class="mu" style="margin-top:8px">Opsional: isi tanggal kalau kegiatan ini sekali saja (bukan tiap minggu)</div><input id="sd" type="date">
+ <button style="margin-top:8px" onclick="addS()">Tambah ke ${HF[jd]}</button></div>
+ ${S.sched.some(x=>x.dt)?`<div class="c"><h2>Kegiatan tanggal khusus</h2>${S.sched.map((x,i)=>({...x,i})).filter(x=>x.dt).sort((a,b)=>a.dt.localeCompare(b.dt)).map(x=>`<div class="it"><div>${x.e||"⭐"} <b>${x.t}</b> ${esc(x.n)}<div class="mu">${fd(x.dt)}</div></div><button class="g" onclick="delS(${x.i})">✕</button></div>`).join("")}</div>`:""}`;
 }
-function addS(){const days=[...document.querySelectorAll(".dy:checked")].map(e=>+e.value),dt=val("sd");if(!val("st")||!val("sn")||(!dt&&!days.length))return;S.sched.push({t:val("st"),n:val("sn"),days:dt?[]:days,dt,e:val("se"),r:+val("sr")});save();draw();askP()}
+function addS(){const dt=val("sd");if(!val("st")||!val("sn"))return;S.sched.push({t:val("st"),n:val("sn"),days:dt?[]:[jd],dt,e:val("se"),r:+val("sr")});save();draw();askP()}
+let jd=new Date().getDay();const HF=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+function setJd(k){jd=k;draw()}
+function delS(i){S.sched.splice(i,1);S.done={};save();draw()}
 function askP(){try{if(Notification.permission=="default")Notification.requestPermission()}catch(e){}}
 const MS=[[3,"🌱","Awal yang bagus, jangan sampai putus!"],[7,"🔥","Seminggu penuh! Kebiasaan mulai terbentuk."],[14,"⭐","Dua minggu! Tubuhmu mulai terbiasa."],[21,"🏅","Tiga minggu, hampir jadi kebiasaan tetap."],[30,"🏆","Sebulan penuh! Kebiasaan ini sudah jadi milikmu."]];
 function mst(n){const g=MS.filter(m=>n>=m[0]),nx=MS.find(m=>n<m[0]),l=g[g.length-1];
