@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Catatan Harianku</title>
+<style>
+:root{color-scheme:light;--bg:#f8fafc;--card:#fff;--tx:#1e293b;--mu:#64748b;--ac:#2563eb;--ok:#16a34a;--bad:#dc2626;--bd:#e2e8f0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:76px}
+main{max-width:560px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0 12px}h2{font-size:16px;margin:0 0 8px}
+.c{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:12px}
+.r{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.r>*{flex:1;min-width:0}
+input,select,button,textarea{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px;width:100%}
+button{background:var(--ac);color:#fff;border:0;font-weight:600;cursor:pointer}
+button.g{background:transparent;color:var(--bad);width:auto;padding:4px 8px}
+.mu{color:var(--mu);font-size:13px}.ok{color:var(--ok)}.bad{color:var(--bad)}
+.big{font-size:22px;font-weight:700}
+.bar{height:10px;background:var(--bd);border-radius:6px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--ac)}
+.it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--bd)}
+.it:first-of-type{border-top:0}
+.chip{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--bd);border-radius:20px;padding:4px 10px;margin:3px 3px 0 0;font-size:14px}
+.chip input{width:auto;margin:0}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{background:transparent;color:var(--mu);border-radius:0;font-size:12px;padding:10px 2px}
+nav button.on{color:var(--ac)}
+.done{text-decoration:line-through;color:var(--mu)}
+</style></head><body><main><div id="v"></div></main>
+<nav id="nav"></nav>
+<script>
+const D={limit:100000,inc:["Gaji","Uang saku","Lainnya"],exp:["Makan","Transport","Belanja","Tagihan","Lainnya"],tx:[],goals:[],fixed:[],sched:[],done:{},todos:[],habits:[],rem:"20:00"};
+let S=JSON.parse(JSON.stringify(D)),tab="k";
+try{const x=localStorage.getItem("hk1");if(x)S=Object.assign(S,JSON.parse(x))}catch(e){}
+const save=()=>{try{localStorage.setItem("hk1",JSON.stringify(S))}catch(e){}};
+const $=i=>document.getElementById(i),val=i=>$(i).value.trim();
+const rp=n=>"Rp"+Math.round(n).toLocaleString("id-ID");
+const today=()=>new Date().toLocaleDateString("sv");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const H=["Min","Sen","Sel","Rab","Kam","Jum","Sab"];
+const T=[["k","💰","Uang"],["j","🗓️","Jadwal"],["h","🔥","Habit"],["t","🐖","Tabung"],["m","⚙️","Lainnya"]];
+function go(t){tab=t;draw()}
+function draw(){
+ $("nav").innerHTML=T.map(a=>`<button class="${a[0]==tab?"on":""}" onclick="go('${a[0]}')"><div style="font-size:20px">${a[1]}</div>${a[2]}</button>`).join("");
+ $("v").innerHTML=({k:vK,j:vJ,h:vH,t:()=>vT()+vF(),m:vM})[tab]();
+ if(tab=="k")fillCat();
+}
+/* UANG */
+function vK(){
+ const d=today(),m=d.slice(0,7),tt=S.tx.filter(x=>x.d==d);
+ const sum=(a,t)=>a.filter(x=>x.t==t).reduce((s,x)=>s+x.a,0);
+ const i=sum(tt,"i"),o=sum(tt,"o"),left=S.limit-o,p=Math.min(100,o/S.limit*100);
+ const mm=S.tx.filter(x=>x.d.slice(0,7)==m);
+ return `<h1>Uang hari ini</h1><div class="c">
+ <div class="r"><div><div class="mu">Pemasukan</div><div class="big ok">${rp(i)}</div></div><div><div class="mu">Pengeluaran</div><div class="big bad">${rp(o)}</div></div></div>
+ <div class="bar"><i style="width:${p}%;background:${left<0?"var(--bad)":"var(--ac)"}"></i></div>
+ <div class="${left<0?"bad":""}">${left<0?"Lewat batas "+rp(-left):"Sisa batas harian: "+rp(left)}</div>
+ <div class="mu">Batas harian: ${rp(S.limit)} (atur di tab Lainnya)</div></div>
+ <div class="c"><h2>Catat transaksi</h2>
+ <div class="r"><select id="ty" onchange="fillCat()"><option value="o">Pengeluaran</option><option value="i">Pemasukan</option></select><select id="ct"></select></div>
+ <div class="r" style="margin-top:8px"><input id="am" type="number" inputmode="numeric" placeholder="Jumlah (Rp)"><input id="nt" placeholder="Catatan (opsional)"></div>
+ <button style="margin-top:8px" onclick="addTx()">Simpan</button></div>
+ ${chart()}<div class="c"><h2>Hari ini</h2>${tt.length?tt.slice().reverse().map(x=>`<div class="it"><div>${esc(x.c)}<div class="mu">${esc(x.n||"")}</div></div><div class="${x.t=="i"?"ok":"bad"}">${x.t=="i"?"+":"-"}${rp(x.a)}</div><button class="g" onclick="delTx(${x.id})">✕</button></div>`).join(""):'<div class="mu">Belum ada transaksi.</div>'}</div>
+ <div class="c"><h2>Bulan ini</h2><div>Masuk ${rp(sum(mm,"i"))} · Keluar ${rp(sum(mm,"o"))}</div><div class="mu">Selisih ${rp(sum(mm,"i")-sum(mm,"o"))}</div>
+ ${S.exp.map(c=>[c,mm.filter(x=>x.t=="o"&&x.c==c).reduce((s,x)=>s+x.a,0)]).filter(a=>a[1]).map(a=>`<div class="it"><span>${esc(a[0])}</span><span>${rp(a[1])}</span></div>`).join("")}</div>`;
+}
+function chart(){
+ const ds=[];for(let k=6;k>=0;k--){const x=new Date();x.setDate(x.getDate()-k);const d=x.toLocaleDateString("sv");const f=t=>S.tx.filter(y=>y.d==d&&y.t==t).reduce((s,y)=>s+y.a,0);ds.push({l:H[x.getDay()],i:f("i"),o:f("o")})}
+ const mx=Math.max(S.limit,...ds.map(x=>Math.max(x.i,x.o)),1),h=100,y=v=>110-v/mx*h;
+ return `<div class="c"><h2>Grafik 7 hari</h2><svg viewBox="0 0 320 135" width="100%"><line x1="0" x2="320" y1="${y(S.limit)}" y2="${y(S.limit)}" stroke="#ef4444" stroke-dasharray="4 3"/>${ds.map((x,k)=>`<rect x="${k*45+6}" y="${y(x.i)}" width="16" height="${x.i/mx*h}" fill="#22c55e" rx="3"/><rect x="${k*45+23}" y="${y(x.o)}" width="16" height="${x.o/mx*h}" fill="#2563eb" rx="3"/><text x="${k*45+23}" y="127" font-size="11" text-anchor="middle" fill="#64748b">${x.l}</text>`).join("")}</svg><div class="mu">Hijau = masuk · Biru = keluar · Garis merah = batas harian</div></div>`}
+function fillCat(){const t=$("ty");if(!t)return;$("ct").innerHTML=(t.value=="i"?S.inc:S.exp).map(c=>`<option>${esc(c)}</option>`).join("")}
+function addTx(){const a=+val("am");if(!a||a<=0)return;S.tx.push({id:Date.now(),d:today(),t:val("ty"),c:val("ct"),a,n:val("nt")});save();draw()}
+function delTx(id){S.tx=S.tx.filter(x=>x.id!=id);save();draw()}
+/* TABUNGAN */
+function vT(){
+ return `<h1>Tabungan</h1><div class="c"><h2>Target baru</h2><div class="r"><input id="gn" placeholder="Nama (mis. HP baru)"><input id="gt" type="number" inputmode="numeric" placeholder="Target (Rp)"></div><button style="margin-top:8px" onclick="addG()">Tambah target</button></div>`+
+ (S.goals.map((g,i)=>{const p=Math.min(100,g.s/g.t*100);return `<div class="c"><div class="it" style="border:0;padding:0"><b>${esc(g.n)}</b><button class="g" onclick="delG(${i})">Hapus</button></div>
+ <div class="bar"><i style="width:${p}%"></i></div><div>${rp(g.s)} / ${rp(g.t)} (${Math.round(p)}%)</div><div class="mu">Kurang ${rp(Math.max(0,g.t-g.s))}</div>
+ <div class="r" style="margin-top:8px"><input id="d${i}" type="number" inputmode="numeric" placeholder="Jumlah"><button onclick="dep(${i},1)">Setor</button><button onclick="dep(${i},-1)" style="background:var(--mu)">Tarik</button></div></div>`}).join("")||'<div class="mu">Belum ada target tabungan.</div>');
+}
+function addG(){const t=+val("gt");if(!val("gn")||!t)return;S.goals.push({n:val("gn"),t,s:0});save();draw()}
+function dep(i,k){const a=+val("d"+i);if(!a||a<=0)return;S.goals[i].s=Math.max(0,S.goals[i].s+k*a);save();draw()}
+function delG(i){if(confirm("Hapus target ini?")){S.goals.splice(i,1);save();draw()}}
+/* TETAP */
+function vF(){
+ const w=S.fixed.reduce((s,x)=>s+(x.f=="w"?x.a:x.a*12/52),0),m=S.fixed.reduce((s,x)=>s+(x.f=="m"?x.a:x.a*52/12),0);
+ return `<h1>Pengeluaran tetap</h1><div class="c"><div class="r"><div><div class="mu">Per minggu</div><div class="big">${rp(w)}</div></div><div><div class="mu">Per bulan</div><div class="big">${rp(m)}</div></div></div></div>
+ <div class="c"><h2>Tambah</h2><div class="r"><input id="fn" placeholder="Nama (mis. Kos, Pulsa)"><input id="fa" type="number" inputmode="numeric" placeholder="Jumlah (Rp)"></div>
+ <select id="ff" style="margin-top:8px"><option value="m">Tiap bulan</option><option value="w">Tiap minggu</option></select><button style="margin-top:8px" onclick="addF()">Tambah</button></div>
+ <div class="c">${S.fixed.map((x,i)=>`<div class="it"><div>${esc(x.n)}<div class="mu">${x.f=="m"?"Bulanan":"Mingguan"}</div></div><div>${rp(x.a)}</div><button class="g" onclick="S.fixed.splice(${i},1);save();draw()">✕</button></div>`).join("")||'<div class="mu">Belum ada.</div>'}</div>`;
+}
+function addF(){const a=+val("fa");if(!val("fn")||!a)return;S.fixed.push({n:val("fn"),a,f:val("ff")});save();draw()}
+/* JADWAL */
+function vJ(){
+ const d=today(),dw=new Date().getDay(),dn=S.done[d]||[];
+ const L=S.sched.map((x,i)=>({...x,i})).filter(x=>x.days.includes(dw)).sort((a,b)=>a.t.localeCompare(b.t));
+ return `<h1>Jadwal hari ini</h1><div class="mu" style="margin:-8px 0 10px">${H[dw]}, ${d} · ${dn.length}/${L.length} selesai</div>
+ <div class="c">${L.map(x=>`<div class="it"><label class="r" style="flex-wrap:nowrap;gap:10px"><input type="checkbox" style="width:22px;flex:none" ${dn.includes(x.i)?"checked":""} onchange="tg(${x.i})"><span class="${dn.includes(x.i)?"done":""}"><b>${x.t}</b> ${esc(x.n)}</span></label></div>`).join("")||'<div class="mu">Tidak ada jadwal hari ini.</div>'}</div>
+ <div class="c"><h2>Tambah kegiatan</h2><div class="r"><input id="st" type="time" style="flex:0 0 120px"><input id="sn" placeholder="Mau ngapain?"></div>
+ <div>${H.map((h,i)=>`<label class="chip"><input type="checkbox" class="dy" value="${i}" checked>${h}</label>`).join("")}</div>
+ <button style="margin-top:8px" onclick="addS()">Tambah</button></div>
+ <div class="c"><h2>Semua rutinitas</h2>${S.sched.map((x,i)=>`<div class="it"><div><b>${x.t}</b> ${esc(x.n)}<div class="mu">${x.days.length==7?"Setiap hari":x.days.map(k=>H[k]).join(", ")}</div></div><button class="g" onclick="S.sched.splice(${i},1);S.done={};save();draw()">✕</button></div>`).join("")||'<div class="mu">Kosong.</div>'}</div>`;
+}
+function addS(){const days=[...document.querySelectorAll(".dy:checked")].map(e=>+e.value);if(!val("st")||!val("sn")||!days.length)return;S.sched.push({t:val("st"),n:val("sn"),days});save();draw()}
+function tg(i){const d=today();let a=S.done[d]||[];a=a.includes(i)?a.filter(k=>k!=i):a.concat(i);S.done[d]=a;save();draw()}
+/* LAINNYA */
+function vM(){
+ const chips=(k,t)=>S[k].map((c,i)=>`<span class="chip">${esc(c)} <a onclick="delC('${k}',${i})" style="color:var(--bad)">✕</a></span>`).join("");
+ return `<h1>Lainnya</h1>
+ <div class="c"><h2>To-do list</h2><div class="r"><input id="td" placeholder="Tugas baru"><button style="flex:0 0 80px" onclick="addT()">Tambah</button></div>
+ ${S.todos.map((x,i)=>`<div class="it"><label class="r" style="flex-wrap:nowrap;gap:10px"><input type="checkbox" style="width:22px;flex:none" ${x.d?"checked":""} onchange="S.todos[${i}].d=!S.todos[${i}].d;save();draw()"><span class="${x.d?"done":""}">${esc(x.n)}</span></label><button class="g" onclick="S.todos.splice(${i},1);save();draw()">✕</button></div>`).join("")}</div>
+ <div class="c"><h2>Pengingat</h2><div class="mu">Pengingat kegiatan diatur di tab Jadwal. Pengingat malam: cek catat uang dan habit.</div><div class="r" style="margin-top:8px"><input id="rm" type="time" value="${S.rem||""}"><button onclick="S.rem=val('rm');save();askP();draw()">Simpan</button></div><div class="mu" style="margin-top:6px">Pengingat hanya bunyi saat aplikasi sedang terbuka.</div></div>
+ <div class="c"><h2>Batas pengeluaran harian</h2><div class="r"><input id="lm" type="number" inputmode="numeric" value="${S.limit}"><button style="flex:0 0 90px" onclick="S.limit=+val('lm')||S.limit;save();draw()">Simpan</button></div></div>
+ <div class="c"><h2>Sumber pemasukan</h2>${chips("inc")}<div class="r" style="margin-top:8px"><input id="ni" placeholder="Sumber baru"><button style="flex:0 0 80px" onclick="addC('inc','ni')">Tambah</button></div></div>
+ <div class="c"><h2>Kategori pengeluaran</h2>${chips("exp")}<div class="r" style="margin-top:8px"><input id="ne" placeholder="Kategori baru"><button style="flex:0 0 80px" onclick="addC('exp','ne')">Tambah</button></div></div>
+ <div class="c"><h2>Backup data</h2><div class="mu">Data tersimpan di browser HP ini. Salin teks di bawah untuk cadangan.</div>
+ <textarea id="bk" rows="3">${esc(JSON.stringify(S))}</textarea><button style="margin-top:8px" onclick="rst()">Pulihkan dari teks di atas</button></div>`;
+}
+function addT(){if(!val("td"))return;S.todos.push({n:val("td"),d:false});save();draw()}
+function addC(k,i){if(!val(i))return;S[k].push(val(i));save();draw()}
+function delC(k,i){if(S[k].length>1){S[k].splice(i,1);save();draw()}}
+function rst(){try{const o=JSON.parse(val("bk"));if(confirm("Timpa semua data dengan teks ini?")){S=Object.assign(JSON.parse(JSON.stringify(D)),o);save();draw()}}catch(e){alert("Teks backup tidak valid")}}
+const EM=["🏃","📚","💼","🍽️","🧹","😴","⭐"],EN=["Olahraga","Belajar","Kerja","Makan","Rumah","Istirahat","Lainnya"];
+const mn=t=>t.split(":")[0]*60+ +t.split(":")[1];
+function vJ(){
+ const n=new Date(),d=today(),dw=n.getDay(),hm=n.getHours()*60+n.getMinutes(),dn=S.done[d]||[];
+ const L=S.sched.map((x,i)=>({...x,i})).filter(x=>x.days.includes(dw)).sort((a,b)=>a.t.localeCompare(b.t));
+ const nx=L.find(x=>!dn.includes(x.i)&&mn(x.t)>=hm);
+ const wk=[];for(let k=6;k>=0;k--){const x=new Date();x.setDate(x.getDate()-k);const ds=x.toLocaleDateString("sv"),tot=S.sched.filter(s=>s.days.includes(x.getDay())).length,dd=(S.done[ds]||[]).length;wk.push([H[x.getDay()],tot?Math.min(100,Math.round(dd/tot*100)):0])}
+ const p=L.length?dn.length/L.length*100:0;
+ return `<h1>Jadwal hari ini</h1><div class="c"><div class="mu">${H[dw]}, ${d}</div><div class="big">${dn.length}/${L.length} selesai</div><div class="bar"><i style="width:${p}%"></i></div>${nx?`<div>Berikutnya: <b>${nx.t}</b> ${nx.e||"⭐"} ${esc(nx.n)}</div>`:"<div class=\"mu\">Tidak ada kegiatan yang menunggu.</div>"}</div>
+ <div class="c">${L.map(x=>{const dd=dn.includes(x.i);return `<div class="it" style="${nx&&nx.i==x.i?"background:#eff6ff;border-radius:10px;padding:8px":""}"><label class="r" style="flex-wrap:nowrap;gap:10px"><input type="checkbox" style="width:22px;flex:none" ${dd?"checked":""} onchange="tg(${x.i})"><span class="${dd?"done":""}">${x.e||"⭐"} <b>${x.t}</b> ${esc(x.n)}${!dd&&mn(x.t)<hm?' <span class="bad mu">terlewat</span>':""}</span></label>${x.r>=0?"<span title=\"pengingat\">🔔</span>":""}</div>`}).join("")||'<div class="mu">Tidak ada jadwal hari ini.</div>'}</div>
+ <div class="c"><h2>Konsistensi 7 hari</h2><div class="r" style="flex-wrap:nowrap;align-items:flex-end;height:70px">${wk.map(w=>`<div style="text-align:center"><div style="height:${w[1]*0.45}px;min-height:3px;background:var(--ac);border-radius:4px"></div><div class="mu">${w[0]}</div></div>`).join("")}</div></div>
+ <div class="c"><h2>Tambah kegiatan</h2><div class="r"><input id="st" type="time" style="flex:0 0 120px"><input id="sn" placeholder="Mau ngapain?"></div>
+ <div class="r" style="margin-top:8px"><select id="se">${EM.map((e,i)=>`<option value="${e}">${e} ${EN[i]}</option>`).join("")}</select><select id="sr"><option value="-1">Tanpa pengingat</option><option value="0">Ingatkan tepat waktu</option><option value="10">10 menit sebelumnya</option><option value="30">30 menit sebelumnya</option></select></div>
+ <div>${H.map((h,i)=>`<label class="chip"><input type="checkbox" class="dy" value="${i}" checked>${h}</label>`).join("")}</div>
+ <button style="margin-top:8px" onclick="addS()">Tambah</button></div>
+ <div class="c"><h2>Semua rutinitas</h2>${S.sched.map((x,i)=>`<div class="it"><div>${x.e||"⭐"} <b>${x.t}</b> ${esc(x.n)}<div class="mu">${x.days.length==7?"Setiap hari":x.days.map(k=>H[k]).join(", ")}</div></div><button class="g" onclick="S.sched.splice(${i},1);S.done={};save();draw()">✕</button></div>`).join("")||'<div class="mu">Kosong.</div>'}</div>`;
+}
+function addS(){const days=[...document.querySelectorAll(".dy:checked")].map(e=>+e.value);if(!val("st")||!val("sn")||!days.length)return;S.sched.push({t:val("st"),n:val("sn"),days,e:val("se"),r:+val("sr")});save();draw();askP()}
+function askP(){try{if(Notification.permission=="default")Notification.requestPermission()}catch(e){}}
+function vH(){
+ const d=today(),days=[];for(let k=6;k>=0;k--){const x=new Date();x.setDate(x.getDate()-k);days.push([x.toLocaleDateString("sv"),H[x.getDay()][0]])}
+ const st=h=>{let n=0,x=new Date();if(!h.log.includes(d))x.setDate(x.getDate()-1);while(h.log.includes(x.toLocaleDateString("sv"))){n++;x.setDate(x.getDate()-1)}return n};
+ const dn=S.habits.filter(h=>h.log.includes(d)).length;
+ return `<h1>Habit tracker</h1><div class="mu" style="margin:-8px 0 10px">${dn}/${S.habits.length} kebiasaan hari ini</div>
+ <div class="c"><div class="r"><input id="hn" placeholder="Kebiasaan baru (mis. Minum air 2L)"><button style="flex:0 0 80px" onclick="addH()">Tambah</button></div></div>
+ ${S.habits.map((h,i)=>`<div class="c"><div class="it" style="border:0;padding:0"><label class="r" style="flex-wrap:nowrap;gap:10px"><input type="checkbox" style="width:24px;flex:none" ${h.log.includes(d)?"checked":""} onchange="tgH(${i})"><b>${esc(h.n)}</b></label><button class="g" onclick="delH(${i})">✕</button></div><div class="mu" style="margin:6px 0">🔥 Beruntun ${st(h)} hari</div><div class="r" style="flex-wrap:nowrap">${days.map(x=>`<div style="text-align:center"><div style="height:22px;border-radius:6px;background:${h.log.includes(x[0])?"var(--ok)":"var(--bd)"}"></div><div class="mu">${x[1]}</div></div>`).join("")}</div></div>`).join("")||'<div class="mu">Belum ada kebiasaan.</div>'}`;
+}
+function addH(){if(!val("hn"))return;S.habits.push({n:val("hn"),log:[]});save();draw()}
+function tgH(i){const d=today(),h=S.habits[i];h.log=h.log.includes(d)?h.log.filter(x=>x!=d):h.log.concat(d);save();draw()}
+function delH(i){if(confirm("Hapus kebiasaan ini?")){S.habits.splice(i,1);save();draw()}}
+function ring(m){try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+ const b=document.createElement("div");b.textContent=m;b.style.cssText="position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:8px;right:8px;background:#2563eb;color:#fff;padding:14px;border-radius:12px;z-index:9;font-weight:600";b.onclick=()=>b.remove();document.body.appendChild(b);setTimeout(()=>b.remove(),30000);
+ try{if(Notification.permission=="granted")new Notification(m)}catch(e){}}
+const fired={};
+function chk(){const n=new Date(),d=today(),hm=n.getHours()*60+n.getMinutes();
+ S.sched.forEach((x,i)=>{if(!(x.r>=0)||!x.days.includes(n.getDay())||(S.done[d]||[]).includes(i))return;const at=mn(x.t)-x.r,k=d+"s"+i;if(hm>=at&&hm<at+3&&!fired[k]){fired[k]=1;ring("⏰ "+x.t+" "+x.n)}});
+ if(S.rem){const k=d+"r";if(hm>=mn(S.rem)&&hm<mn(S.rem)+3&&!fired[k]){fired[k]=1;ring("📝 Sudah catat uang dan habit hari ini?")}}}
+setInterval(chk,20000);chk();
+draw();
+if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+</script></body></html>
